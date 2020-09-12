@@ -24,7 +24,7 @@ jobs:
 
           sleep 60
           kubectl -n metallb-system get all
-          kubectl -n metallb-system describe pod $(kubectl get pod -l app=metallb -o jsonpath='{.items[0].metadata.name}')
+          kubectl -n metallb-system describe pod $(kubectl -n metallb-system get pod -l app=metallb -o jsonpath='{.items[0].metadata.name}')
           kubectl -n metallb-system wait --for=condition=Ready --timeout=120s deployment -l app=metallb
 
           kubectl apply -f metallb-config.yaml
