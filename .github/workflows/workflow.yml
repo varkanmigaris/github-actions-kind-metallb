@@ -28,6 +28,7 @@ jobs:
           kubectl -n metallb-system wait --for=condition=Ready --timeout=120s deployment -l app=metallb
 
           kubectl apply -f metallb-config.yaml
+          sleep 30
 
       - name: Test setup
         run: |
