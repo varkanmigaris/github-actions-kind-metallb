@@ -13,11 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Kind
+      - name: Create Kind Kubernetes cluster
         run: kind create cluster
 
-      - name: Check setup
+      - name: Check Kind CIDR
+        run: docker inspect network kind
+
+      - name: Setup MetalLB
         run: |
-          docker ps
-          docker network ls
-          docker network inspect bridge 
+          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
+          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
+          kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+          kubectl apply -f metallb-config.yaml
+
+      - name: Test setup
+        run: |
+          kubecl apply -f nginx.yaml
+          kubectl wait -l app=nginx --for=condition=Ready --timeout=60s deployment/nginx
+          kubectl get svc
