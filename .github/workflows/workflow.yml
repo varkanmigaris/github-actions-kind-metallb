@@ -26,5 +26,7 @@ jobs:
       - name: Test setup
         run: |
           kubectl apply -f nginx.yaml
-          kubectl wait -l app=nginx --for=condition=Ready --timeout=60s deployment
+          sleep 30
+          kubectl get all
+          kubectl wait -l app=nginx --for=condition=Ready --timeout=120s deployment
           kubectl get svc
