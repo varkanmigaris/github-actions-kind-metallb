@@ -19,6 +19,7 @@ jobs:
       - name: Setup MetalLB
         run: |
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
+          kubectl -n metallb-system create secret generic memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
 
           sleep 60
@@ -26,7 +27,6 @@ jobs:
           kubectl -n metallb-system describe pod $(kubectl get pod -l app=metallb -o jsonpath='{.items[0].metadata.name}')
           kubectl -n metallb-system wait --for=condition=Ready --timeout=120s deployment -l app=metallb
 
-          kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
           kubectl apply -f metallb-config.yaml
 
       - name: Test setup
