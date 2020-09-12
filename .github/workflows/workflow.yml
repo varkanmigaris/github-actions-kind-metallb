@@ -20,6 +20,12 @@ jobs:
         run: |
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
+
+          sleep 30
+          kubectl -n metallb-system get all
+
+          kubectl -n metallb-system wait --for=condition=Ready --timeout=120s deployment -l app=metallb
+
           kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
           kubectl apply -f metallb-config.yaml
 
@@ -28,5 +34,5 @@ jobs:
           kubectl apply -f nginx.yaml
           sleep 30
           kubectl get all
-          kubectl wait -l app=nginx --for=condition=Ready --timeout=120s deployment
+          kubectl wait --for=condition=Ready --timeout=120s deployment -l app=nginx
           kubectl get svc
