@@ -14,26 +14,40 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Create Kind Kubernetes cluster
-        run: kind create cluster
+        run: kind create cluster --wait 120s
 
       - name: Setup MetalLB
         run: |
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
           kubectl -n metallb-system create secret generic memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
-
-          sleep 60
-          kubectl -n metallb-system get all
-          kubectl -n metallb-system describe pod $(kubectl -n metallb-system get pod -l app=metallb -o jsonpath='{.items[0].metadata.name}')
-          kubectl -n metallb-system wait --for=condition=Ready --timeout=120s deployment -l app=metallb
-
           kubectl apply -f metallb-config.yaml
-          sleep 30
+          kubectl -n metallb-system wait --for=condition=Ready --timeout=120s pod -l app=metallb
 
       - name: Test setup
         run: |
           kubectl apply -f nginx.yaml
-          sleep 30
-          kubectl get all
-          kubectl wait --for=condition=Ready --timeout=120s deployment -l app=nginx
+          kubectl wait --for=condition=Ready --timeout=120s pod -l app=nginx
           kubectl get svc
+
+          LOAD_BALANCER_IP=$(kubectl get service/nginx -o jsonpath='{.status.loadBalancer.ingress[*].ip}')
+          curl -D - -s http://$LOAD_BALANCER_IP
+
+      - name: Test Nginx Ingress Controller (Setup)
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.35.0/deploy/static/provider/cloud/deploy.yaml
+          kubectl -n ingress-nginx wait --for=condition=Ready --timeout=120s pod -l app.kubernetes.io/component=controller,app.kubernetes.io/instance=ingress-nginx
+          kubectl -n ingress-nginx get all
+
+      - name: Test Nginx Ingress Controller (Usage)
+        run: |
+          kubectl apply -f ingress.yaml
+          sleep 60
+          INGRESS_IP=$(kubectl get ingress nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          kubectl get all,ingress
+
+          echo "curl http://172.18.128.2"
+          curl -D - -s http://172.18.128.2
+
+          echo "Ingress IP: $INGRESS_IP"
+          curl -D - -s http://$INGRESS_IP
