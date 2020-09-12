@@ -16,9 +16,6 @@ jobs:
       - name: Create Kind Kubernetes cluster
         run: kind create cluster
 
-      - name: Check Kind CIDR
-        run: docker inspect network kind
-
       - name: Setup MetalLB
         run: |
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
@@ -28,6 +25,6 @@ jobs:
 
       - name: Test setup
         run: |
-          kubecl apply -f nginx.yaml
-          kubectl wait -l app=nginx --for=condition=Ready --timeout=60s deployment/nginx
+          kubectl apply -f nginx.yaml
+          kubectl wait -l app=nginx --for=condition=Ready --timeout=60s deployment
           kubectl get svc
